@@ -1,0 +1,38 @@
+# Netlify redirects for SPA routing
+# This file handles client-side routing for React applications
+
+# API routes should be handled by the backend
+/api/* /api/:splat 200
+
+# All other routes should serve the index.html for client-side routing
+/* /index.html 200
+
+# Handle specific file extensions that should not be redirected
+/*.js /static/js/:splat 200
+/*.css /static/css/:splat 200
+/*.png /static/media/:splat 200
+/*.jpg /static/media/:splat 200
+/*.jpeg /static/media/:splat 200
+/*.gif /static/media/:splat 200
+/*.svg /static/media/:splat 200
+/*.ico /favicon.ico 200
+/*.woff /static/media/:splat 200
+/*.woff2 /static/media/:splat 200
+/*.ttf /static/media/:splat 200
+/*.eot /static/media/:splat 200
+
+# Security headers
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;
+
+# Cache static assets
+/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Cache HTML with shorter duration
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
