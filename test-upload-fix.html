@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Upload - Correção API</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        input[type="file"] { margin: 10px 0; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Teste de Correção - Upload de Imagens</h1>
+    
+    <div class="test-section info">
+        <h3>📋 Problema Identificado</h3>
+        <p><strong>Erro:</strong> <code>net::ERR_ABORTED https://api.damafiarevenda.shop/api/products</code></p>
+        <p><strong>Causa:</strong> Frontend configurado para usar subdomínio <code>api.damafiarevenda.shop</code> que não existe</p>
+        <p><strong>Correção:</strong> Alterado para <code>damafiarevenda.shop/api</code> (domínio principal + proxy nginx)</p>
+    </div>
+
+    <div class="test-section">
+        <h3>🌐 1. Teste de Conectividade API</h3>
+        <button onclick="testAPIConnection()">Testar Conexão com API</button>
+        <div id="api-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔐 2. Teste de Autenticação</h3>
+        <input type="text" id="username" placeholder="Usuário (admin)" value="admin">
+        <input type="password" id="password" placeholder="Senha" value="admin123">
+        <button onclick="testLogin()">Fazer Login</button>
+        <div id="auth-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>📦 3. Teste de Produtos API</h3>
+        <button onclick="testProductsAPI()">Listar Produtos</button>
+        <div id="products-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>📸 4. Teste de Upload de Imagens</h3>
+        <input type="file" id="imageFile" accept="image/*" multiple>
+        <button onclick="testImageUpload()">Upload de Imagem</button>
+        <div id="upload-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔍 5. Diagnóstico Completo</h3>
+        <button onclick="runFullDiagnostic()">Executar Diagnóstico Completo</button>
+        <div id="diagnostic-results"></div>
+    </div>
+
+    <script>
+        // URLs corrigidas
+        const API_BASE = 'https://damafiarevenda.shop/api';
+        let authToken = null;
+
+        function addResult(containerId, type, title, message) {
+            const container = document.getElementById(containerId);
+            const result = document.createElement('div');
+            result.className = `test-section ${type}`;
+            result.innerHTML = `<strong>${title}:</strong> ${message}`;
+            container.appendChild(result);
+        }
+
+        function clearResults(containerId) {
+            document.getElementById(containerId).innerHTML = '';
+        }
+
+        async function testAPIConnection() {
+            clearResults('api-results');
+            
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('api-results', 'success', '✅ API Conectada', 
+                        `Status: ${data.status}, Ambiente: ${data.environment}`);
+                } else {
+                    addResult('api-results', 'error', '❌ Erro na API', 
+                        `Status: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                addResult('api-results', 'error', '❌ Erro de Conexão', error.message);
+            }
+        }
+
+        async function testLogin() {
+            clearResults('auth-results');
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    authToken = data.token;
+                    addResult('auth-results', 'success', '✅ Login Realizado', 
+                        `Token obtido, Usuário: ${data.user?.username || 'N/A'}`);
+                } else {
+                    const error = await response.json();
+                    addResult('auth-results', 'error', '❌ Erro no Login', 
+                        error.message || `Status: ${response.status}`);
+                }
+            } catch (error) {
+                addResult('auth-results', 'error', '❌ Erro de Conexão', error.message);
+            }
+        }
+
+        async function testProductsAPI() {
+            clearResults('products-results');
+            
+            if (!authToken) {
+                addResult('products-results', 'warning', '⚠️ Token Necessário', 
+                    'Faça login primeiro para testar a API de produtos');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/products`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('products-results', 'success', '✅ Produtos Carregados', 
+                        `${data.products?.length || 0} produtos encontrados`);
+                } else {
+                    addResult('products-results', 'error', '❌ Erro na API de Produtos', 
+                        `Status: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                addResult('products-results', 'error', '❌ Erro de Conexão', error.message);
+            }
+        }
+
+        async function testImageUpload() {
+            clearResults('upload-results');
+            
+            if (!authToken) {
+                addResult('upload-results', 'warning', '⚠️ Token Necessário', 
+                    'Faça login primeiro para testar o upload');
+                return;
+            }
+            
+            const fileInput = document.getElementById('imageFile');
+            if (!fileInput.files.length) {
+                addResult('upload-results', 'warning', '⚠️ Arquivo Necessário', 
+                    'Selecione uma imagem para fazer upload');
+                return;
+            }
+            
+            const formData = new FormData();
+            Array.from(fileInput.files).forEach(file => {
+                formData.append('images', file);
+            });
+            
+            try {
+                const response = await fetch(`${API_BASE}/upload/product-images`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${authToken}` },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('upload-results', 'success', '✅ Upload Realizado', 
+                        `${data.files?.length || 0} arquivo(s) enviado(s) com sucesso`);
+                } else {
+                    const error = await response.json();
+                    addResult('upload-results', 'error', '❌ Erro no Upload', 
+                        error.error || `Status: ${response.status}`);
+                }
+            } catch (error) {
+                addResult('upload-results', 'error', '❌ Erro de Conexão', error.message);
+            }
+        }
+
+        async function runFullDiagnostic() {
+            clearResults('diagnostic-results');
+            addResult('diagnostic-results', 'info', '🔄 Iniciando Diagnóstico', 'Executando testes...');
+            
+            // Teste 1: API Health
+            await testAPIConnection();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Teste 2: Login automático
+            document.getElementById('username').value = 'admin';
+            document.getElementById('password').value = 'admin123';
+            await testLogin();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Teste 3: Produtos
+            await testProductsAPI();
+            
+            addResult('diagnostic-results', 'info', '✅ Diagnóstico Concluído', 
+                'Verifique os resultados acima. Se todos os testes passaram, o problema foi corrigido!');
+        }
+
+        // Auto-executar teste de conectividade ao carregar
+        window.onload = () => {
+            testAPIConnection();
+        };
+    </script>
+</body>
+</html>
