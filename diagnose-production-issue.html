@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico - Problema de Produção</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .test-section { margin: 15px 0; padding: 15px; border-radius: 8px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .success { border-left: 4px solid #28a745; }
+        .error { border-left: 4px solid #dc3545; }
+        .warning { border-left: 4px solid #ffc107; }
+        .info { border-left: 4px solid #17a2b8; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; border: none; border-radius: 4px; background: #007bff; color: white; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; }
+        .status-indicator { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }
+        .status-ok { background: #28a745; }
+        .status-error { background: #dc3545; }
+        .status-warning { background: #ffc107; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Diagnóstico Completo - Problema de Upload</h1>
+        
+        <div class="test-section error">
+            <h3>🚨 Problema Atual</h3>
+            <p><strong>Erro:</strong> <code>Upload error: Error: Erro no upload</code></p>
+            <p><strong>Status API:</strong> <span id="api-status">❌ 404 Not Found (nginx)</span></p>
+            <p><strong>Causa provável:</strong> Backend não está rodando no servidor de produção</p>
+        </div>
+
+        <div class="grid">
+            <div class="test-section">
+                <h3>🌐 1. Teste de Conectividade</h3>
+                <button onclick="testConnectivity()">Testar Conectividade</button>
+                <div id="connectivity-results"></div>
+            </div>
+
+            <div class="test-section">
+                <h3>🏠 2. Teste de Hospedagem</h3>
+                <button onclick="testHosting()">Verificar Hospedagem</button>
+                <div id="hosting-results"></div>
+            </div>
+
+            <div class="test-section">
+                <h3>🔧 3. Teste de Configuração</h3>
+                <button onclick="testConfiguration()">Verificar Configuração</button>
+                <div id="config-results"></div>
+            </div>
+
+            <div class="test-section">
+                <h3>📡 4. Teste de API</h3>
+                <button onclick="testAPI()">Testar Endpoints</button>
+                <div id="api-results"></div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🎯 5. Diagnóstico Completo</h3>
+            <button onclick="runFullDiagnostic()" style="background: #28a745;">🚀 Executar Diagnóstico Completo</button>
+            <div id="full-diagnostic"></div>
+        </div>
+
+        <div class="test-section info">
+            <h3>💡 Possíveis Soluções</h3>
+            <div id="solutions">
+                <h4>Se o backend não estiver rodando:</h4>
+                <ul>
+                    <li>Verificar se o processo Node.js está ativo no servidor</li>
+                    <li>Verificar se a porta 3002 está aberta e acessível</li>
+                    <li>Verificar logs do servidor para erros</li>
+                    <li>Reiniciar o serviço do backend</li>
+                </ul>
+                
+                <h4>Se o nginx não estiver configurado:</h4>
+                <ul>
+                    <li>Aplicar a configuração nginx.conf criada</li>
+                    <li>Verificar se o proxy_pass está correto</li>
+                    <li>Recarregar configuração do nginx</li>
+                    <li>Verificar logs do nginx</li>
+                </ul>
+                
+                <h4>Se for problema de deploy:</h4>
+                <ul>
+                    <li>Verificar se o código foi deployado corretamente</li>
+                    <li>Verificar se as variáveis de ambiente estão corretas</li>
+                    <li>Verificar se as dependências foram instaladas</li>
+                    <li>Verificar se o banco de dados está acessível</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function addResult(containerId, type, title, message, details = null) {
+            const container = document.getElementById(containerId);
+            const result = document.createElement('div');
+            result.className = `test-section ${type}`;
+            
+            let statusClass = 'status-error';
+            if (type === 'success') statusClass = 'status-ok';
+            if (type === 'warning') statusClass = 'status-warning';
+            
+            let content = `<span class="status-indicator ${statusClass}"></span><strong>${title}:</strong> ${message}`;
+            if (details) {
+                content += `<pre>${details}</pre>`;
+            }
+            
+            result.innerHTML = content;
+            container.appendChild(result);
+        }
+
+        function clearResults(containerId) {
+            document.getElementById(containerId).innerHTML = '';
+        }
+
+        async function testConnectivity() {
+            clearResults('connectivity-results');
+            
+            const tests = [
+                { name: 'Site Principal', url: 'https://damafiarevenda.shop' },
+                { name: 'API Health', url: 'https://damafiarevenda.shop/api/health' },
+                { name: 'API Products', url: 'https://damafiarevenda.shop/api/products' },
+                { name: 'Uploads Directory', url: 'https://damafiarevenda.shop/uploads/' }
+            ];
+            
+            for (const test of tests) {
+                try {
+                    const response = await fetch(test.url, { method: 'HEAD' });
+                    if (response.ok) {
+                        addResult('connectivity-results', 'success', test.name, `✅ Acessível (${response.status})`);
+                    } else {
+                        addResult('connectivity-results', 'error', test.name, `❌ Erro ${response.status}`);
+                    }
+                } catch (error) {
+                    addResult('connectivity-results', 'error', test.name, `❌ ${error.message}`);
+                }
+            }
+        }
+
+        async function testHosting() {
+            clearResults('hosting-results');
+            
+            try {
+                const response = await fetch('https://damafiarevenda.shop');
+                const html = await response.text();
+                
+                if (html.includes('vite')) {
+                    addResult('hosting-results', 'success', 'Frontend', '✅ Vite/React detectado');
+                } else {
+                    addResult('hosting-results', 'warning', 'Frontend', '⚠️ Tipo não identificado');
+                }
+                
+                if (html.includes('damafiarevenda')) {
+                    addResult('hosting-results', 'success', 'Conteúdo', '✅ Conteúdo correto carregado');
+                } else {
+                    addResult('hosting-results', 'error', 'Conteúdo', '❌ Conteúdo não reconhecido');
+                }
+                
+                // Verificar se há referências à API antiga
+                if (html.includes('api.damafiarevenda.shop')) {
+                    addResult('hosting-results', 'error', 'Configuração API', '❌ Ainda usando URL antiga da API');
+                } else {
+                    addResult('hosting-results', 'success', 'Configuração API', '✅ URL da API corrigida');
+                }
+                
+            } catch (error) {
+                addResult('hosting-results', 'error', 'Hospedagem', `❌ ${error.message}`);
+            }
+        }
+
+        async function testConfiguration() {
+            clearResults('config-results');
+            
+            // Teste de CORS
+            try {
+                const response = await fetch('https://damafiarevenda.shop/api/health', {
+                    method: 'OPTIONS'
+                });
+                addResult('config-results', 'info', 'CORS', `Status: ${response.status}`);
+            } catch (error) {
+                addResult('config-results', 'error', 'CORS', `❌ ${error.message}`);
+            }
+            
+            // Teste de Headers
+            try {
+                const response = await fetch('https://damafiarevenda.shop');
+                const server = response.headers.get('server');
+                const powered = response.headers.get('x-powered-by');
+                
+                addResult('config-results', 'info', 'Servidor', server || 'Não identificado');
+                if (powered) {
+                    addResult('config-results', 'info', 'Powered By', powered);
+                }
+            } catch (error) {
+                addResult('config-results', 'error', 'Headers', `❌ ${error.message}`);
+            }
+        }
+
+        async function testAPI() {
+            clearResults('api-results');
+            
+            const endpoints = [
+                '/api/health',
+                '/api/auth/login',
+                '/api/products',
+                '/api/upload/files',
+                '/api/public/brand'
+            ];
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(`https://damafiarevenda.shop${endpoint}`);
+                    const statusText = response.ok ? '✅' : '❌';
+                    addResult('api-results', response.ok ? 'success' : 'error', 
+                        endpoint, `${statusText} ${response.status} ${response.statusText}`);
+                } catch (error) {
+                    addResult('api-results', 'error', endpoint, `❌ ${error.message}`);
+                }
+            }
+        }
+
+        async function runFullDiagnostic() {
+            clearResults('full-diagnostic');
+            addResult('full-diagnostic', 'info', '🔄 Iniciando', 'Executando diagnóstico completo...');
+            
+            await testConnectivity();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testHosting();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testConfiguration();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testAPI();
+            
+            addResult('full-diagnostic', 'success', '✅ Diagnóstico Concluído', 
+                'Verifique os resultados acima para identificar o problema.');
+        }
+
+        // Auto-executar teste básico ao carregar
+        window.onload = () => {
+            testConnectivity();
+        };
+    </script>
+</body>
+</html>
